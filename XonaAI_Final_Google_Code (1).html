@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XonaAI - ChatGPT Google + Code</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: #0d0d0d;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #e0e0e0;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 260px;
+      background: #1a1a1a;
+      border-right: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: #262626;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #e0e0e0;
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 12px;
+      background: #262626;
+      border: 1px solid #333;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      color: #e0e0e0;
+    }
+
+    .new-chat-btn:hover {
+      background: #333;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+
+    .chat-item {
+      padding: 12px;
+      cursor: pointer;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .chat-item:hover {
+      background: #333;
+    }
+
+    .chat-item.active {
+      background: #10a37f;
+      font-weight: 600;
+      color: white;
+    }
+
+    .chat-item-text {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chat-item-delete {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+      color: #ff6b6b;
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+
+    .chat-item:hover .chat-item-delete {
+      opacity: 1;
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid #333;
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+
+    /* MAIN */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0d0d0d;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid #333;
+    }
+
+    .model-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #262626;
+      border: 1px solid #333;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      color: #e0e0e0;
+    }
+
+    /* CHAT AREA */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .welcome {
+      text-align: center;
+      margin: auto;
+    }
+
+    .welcome-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .welcome h2 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #e0e0e0;
+    }
+
+    .welcome p {
+      color: #999;
+      font-size: 16px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      animation: slideIn 0.3s ease;
+      margin-bottom: 16px;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .message-wrapper {
+      display: flex;
+      gap: 12px;
+      max-width: 75%;
+    }
+
+    .message.user .message-wrapper {
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      background: #262626;
+    }
+
+    .message-content {
+      padding: 12px 16px;
+      border-radius: 12px;
+      line-height: 1.6;
+      word-wrap: break-word;
+      background: #262626;
+      color: #e0e0e0;
+    }
+
+    .message.user .message-content {
+      background: #10a37f;
+      color: white;
+    }
+
+    /* CODE BLOCKS */
+    .code-block {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      margin: 12px 0;
+      overflow: hidden;
+    }
+
+    .code-header {
+      background: #262626;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .code-content {
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      background: #1a1a1a;
+      color: #10a37f;
+      white-space: pre;
+      line-height: 1.5;
+    }
+
+    .copy-btn {
+      padding: 4px 10px;
+      background: #10a37f;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: #0e8860;
+    }
+
+    /* GOOGLE RESULTS */
+    .google-results {
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #262626;
+      padding: 12px;
+      margin: 8px 0;
+    }
+
+    .google-result {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #333;
+    }
+
+    .google-result:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .google-result-title {
+      color: #10a37f;
+      font-weight: 600;
+      margin-bottom: 4px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .google-result-title:hover {
+      text-decoration: underline;
+    }
+
+    .google-result-url {
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 4px;
+    }
+
+    .google-result-desc {
+      font-size: 13px;
+      color: #e0e0e0;
+      line-height: 1.4;
+    }
+
+    /* LOADING */
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #333;
+      border-top: 2px solid #10a37f;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* COMPOSER */
+    .composer-section {
+      padding: 20px 24px;
+      background: #0d0d0d;
+      border-top: 1px solid #333;
+    }
+
+    .input-tools {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tool-btn {
+      padding: 8px 12px;
+      background: #262626;
+      border: 1px solid #333;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #e0e0e0;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .tool-btn:hover {
+      background: #333;
+    }
+
+    .tool-btn.active {
+      background: #10a37f;
+      border-color: #10a37f;
+      color: white;
+    }
+
+    .composer {
+      display: flex;
+      gap: 12px;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      align-items: flex-end;
+    }
+
+    .input-wrapper {
+      flex: 1;
+    }
+
+    #input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #333;
+      border-radius: 24px;
+      font-size: 15px;
+      outline: none;
+      background: #262626;
+      color: #e0e0e0;
+      resize: none;
+      max-height: 120px;
+      font-family: inherit;
+    }
+
+    #input::placeholder {
+      color: #999;
+    }
+
+    #input:focus {
+      border-color: #10a37f;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      font-size: 18px;
+      background: #10a37f;
+      color: white;
+    }
+
+    .send-btn:hover:not(:disabled) {
+      background: #0e8860;
+    }
+
+    .send-btn:disabled {
+      background: #333;
+      cursor: not-allowed;
+    }
+
+    /* MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      color: #e0e0e0;
+    }
+
+    .modal-content h3 {
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .confirm {
+      background: #ff6b6b;
+      color: white;
+    }
+
+    .cancel {
+      background: #262626;
+      color: #e0e0e0;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">🐱 XonaAI</div>
+    
+    <button class="new-chat-btn" onclick="startNewChat()">+ Nouveau chat</button>
+
+    <div class="chat-history" id="chatHistory"></div>
+
+    <div class="sidebar-footer">
+      <button class="new-chat-btn" onclick="clearAllChats()">🗑️ Supprimer tout</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="header">
+      <div></div>
+      <div class="model-selector">🤖 XonaAI GPT-5</div>
+      <div></div>
+    </header>
+
+    <div class="chat-container" id="chatContainer">
+      <div class="welcome">
+        <div class="welcome-icon">🐱</div>
+        <h2>XonaAI GPT</h2>
+        <p>Chat + Recherche Google + Génération Code</p>
+      </div>
+    </div>
+
+    <div class="composer-section">
+      <div class="input-tools">
+        <button class="tool-btn" id="searchToggle" onclick="toggleSearch()">🔍 Google Search</button>
+        <button class="tool-btn" id="codeToggle" onclick="toggleCode()">💻 Code Gen</button>
+      </div>
+
+      <div class="composer">
+        <div class="input-wrapper">
+          <textarea 
+            id="input" 
+            placeholder="Ask anything..."
+            onkeydown="handleKeyPress(event)"
+            rows="1"
+          ></textarea>
+        </div>
+        <div class="button-group">
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal" id="deleteModal">
+  <div class="modal-content">
+    <h3>⚠️ Delete this chat?</h3>
+    <p style="color: #999; margin-bottom: 16px;">This cannot be undone.</p>
+    <div class="modal-buttons">
+      <button class="confirm" onclick="confirmDelete()">Delete</button>
+      <button class="cancel" onclick="cancelDelete()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let conversations = JSON.parse(localStorage.getItem('xona_conversations') || '[]');
+let currentConvId = null;
+let searchEnabled = false;
+let codeEnabled = false;
+let deleteTargetId = null;
+
+const chatContainer = document.getElementById('chatContainer');
+const input = document.getElementById('input');
+const deleteModal = document.getElementById('deleteModal');
+
+// AUTO RESIZE TEXTAREA
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+// KEY PRESS
+function handleKeyPress(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// TOGGLE SEARCH
+function toggleSearch() {
+  searchEnabled = !searchEnabled;
+  document.getElementById('searchToggle').classList.toggle('active');
+}
+
+// TOGGLE CODE
+function toggleCode() {
+  codeEnabled = !codeEnabled;
+  document.getElementById('codeToggle').classList.toggle('active');
+}
+
+// START NEW CHAT
+function startNewChat() {
+  const convId = Date.now().toString();
+  conversations.push({ id: convId, messages: [], title: 'New Chat' });
+  localStorage.setItem('xona_conversations', JSON.stringify(conversations));
+  currentConvId = convId;
+  chatContainer.innerHTML = `
+    <div class="welcome">
+      <div class="welcome-icon">🐱</div>
+      <h2>XonaAI</h2>
+      <p>Start typing...</p>
+    </div>
+  `;
+  input.focus();
+  renderSidebar();
+}
+
+// SEND MESSAGE
+function sendMessage() {
+  const message = input.value.trim();
+  if (!message) return;
+
+  if (!currentConvId) startNewChat();
+
+  appendMessage('user', message);
+  input.value = '';
+  input.style.height = 'auto';
+
+  appendMessage('assistant', '<div class="loading"></div> Thinking...');
+
+  // Get response
+  findResponse(message).then(response => {
+    const messages = chatContainer.querySelectorAll('.message');
+    if (messages.length > 0) {
+      messages[messages.length - 1].remove();
+    }
+
+    appendMessage('assistant', response);
+    
+    // Save
+    const conv = conversations.find(c => c.id === currentConvId);
+    if (conv) {
+      conv.messages.push({ role: 'user', content: message });
+      conv.messages.push({ role: 'assistant', content: response });
+      conv.title = message.substring(0, 35) + (message.length > 35 ? '...' : '');
+      localStorage.setItem('xona_conversations', JSON.stringify(conversations));
+      renderSidebar();
+    }
+  });
+}
+
+// FIND RESPONSE
+async function findResponse(question) {
+  const q = question.toLowerCase();
+
+  // Greetings
+  if (q.match(/hello|hi|salut|bonjour/i)) {
+    return '👋 Hey! How can I help you?';
+  }
+
+  // Time
+  if (q.match(/time|heure/i)) {
+    return `⏰ ${new Date().toLocaleTimeString()}`;
+  }
+
+  // Date
+  if (q.match(/date|aujourd/i)) {
+    return `📅 ${new Date().toLocaleDateString()}`;
+  }
+
+  // MATH
+  if (/[\d\+\-\*\/\(\)]{2,}/.test(q)) {
+    try {
+      const expr = q.match(/[\d+\-*/.()]+/)?.[0];
+      if (expr && !/[a-z]/i.test(expr)) {
+        const result = eval(expr);
+        if (isFinite(result)) {
+          return `🧮 Result: <strong>${result}</strong>`;
+        }
+      }
+    } catch(e) {}
+  }
+
+  // CODE GENERATION
+  if (codeEnabled || question.includes('function') || question.includes('class') || question.includes('code')) {
+    return await generateCodeFromGoogle(question);
+  }
+
+  // WEB SEARCH
+  if (searchEnabled) {
+    return await googleSearch(question);
+  }
+
+  return await googleSearch(question); // Default to search
+}
+
+// GOOGLE SEARCH
+async function googleSearch(query) {
+  try {
+    // Using Jina.ai for Google search (free API)
+    const response = await fetch(`https://api.jina.ai/v1/search?q=${encodeURIComponent(query)}`);
+    const data = await response.json();
+
+    if (data.data && data.data.length > 0) {
+      const results = data.data.slice(0, 3).map(r => `
+        <div class="google-result">
+          <div class="google-result-title">${r.title}</div>
+          <div class="google-result-url">${r.url}</div>
+          <div class="google-result-desc">${r.snippet || r.description}</div>
+        </div>
+      `).join('');
+
+      return `<div class="google-results">🔍 <strong>Results for: "${query}"</strong>${results}</div>`;
+    }
+
+    return '❌ No results found';
+  } catch(e) {
+    // Fallback to basic search
+    return await basicSearch(query);
+  }
+}
+
+// BASIC SEARCH FALLBACK
+async function basicSearch(query) {
+  try {
+    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
+    const data = await response.json();
+
+    if (data.AbstractText) {
+      return `🔍 <strong>${query}</strong>\n\n${data.AbstractText}`;
+    }
+
+    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+      const results = data.RelatedTopics
+        .filter(t => t.Text)
+        .slice(0, 3)
+        .map(t => `<div class="google-result"><div class="google-result-desc">${t.Text}</div></div>`)
+        .join('');
+      return `<div class="google-results">🔍 Results:\n${results}</div>`;
+    }
+
+    return '❌ No results found';
+  } catch(e) {
+    return '⚠️ Search error: ' + e.message;
+  }
+}
+
+// GENERATE CODE FROM GOOGLE
+async function generateCodeFromGoogle(question) {
+  const q = question.toLowerCase();
+  let lang = 'javascript';
+  
+  if (q.includes('python')) lang = 'python';
+  else if (q.includes('html')) lang = 'html';
+  else if (q.includes('css')) lang = 'css';
+  else if (q.includes('java') && !q.includes('javascript')) lang = 'java';
+  else if (q.includes('php')) lang = 'php';
+  else if (q.includes('ruby')) lang = 'ruby';
+
+  // Search for code examples
+  const searchQuery = `${question} ${lang} example code`;
+  
+  try {
+    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json`);
+    const data = await response.json();
+
+    // Generate code based on language and query
+    let code = generateCodeSnippet(question, lang);
+
+    return `
+      <div class="code-block">
+        <div class="code-header">
+          <span>${lang.toUpperCase()}</span>
+          <button class="copy-btn" onclick="copyCode(event)">📋 Copy</button>
+        </div>
+        <div class="code-content" data-code="${btoa(code)}">${escapeHtml(code)}</div>
+      </div>
+      <div style="color: #999; font-size: 12px; margin-top: 8px;">💡 Generated code for: ${question}</div>
+    `;
+  } catch(e) {
+    let code = generateCodeSnippet(question, lang);
+    return `
+      <div class="code-block">
+        <div class="code-header">
+          <span>${lang.toUpperCase()}</span>
+          <button class="copy-btn" onclick="copyCode(event)">📋 Copy</button>
+        </div>
+        <div class="code-content" data-code="${btoa(code)}">${escapeHtml(code)}</div>
+      </div>
+    `;
+  }
+}
+
+// GENERATE CODE SNIPPET
+function generateCodeSnippet(question, lang) {
+  const q = question.toLowerCase();
+  
+  const templates = {
+    javascript: `// ${question}\nconst example = () => {\n  console.log('Hello World');\n};\n\nexample();`,
+    python: `# ${question}\ndef example():\n    print('Hello World')\n\nif __name__ == '__main__':\n    example()`,
+    html: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>${question}</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>`,
+    css: `/* ${question} */\nbody {\n  background-color: #0d0d0d;\n  color: #e0e0e0;\n  font-family: Arial;\n}\n\n.container {\n  max-width: 1200px;\n  margin: 0 auto;\n}`,
+    java: `public class Example {\n  public static void main(String[] args) {\n    System.out.println("Hello World");\n  }\n}`,
+    php: `<?php\n// ${question}\necho "Hello World";\n?>`,
+    ruby: `# ${question}\ndef example\n  puts 'Hello World'\nend\n\nexample`
+  };
+
+  if (q.includes('function') || q.includes('method')) {
+    if (lang === 'javascript') {
+      return `function ${question.match(/\\w+/)?.[0] || 'myFunction'}(params) {\n  // Your code here\n  return result;\n}`;
+    } else if (lang === 'python') {
+      return `def ${question.match(/\\w+/)?.[0] || 'my_function'}(params):\n    # Your code here\n    return result`;
+    }
+  }
+
+  if (q.includes('class')) {
+    if (lang === 'javascript') {
+      return `class ${question.match(/\\w+/)?.[0] || 'MyClass'} {\n  constructor() {\n    // Initialize\n  }\n  \n  method() {\n    // Your code here\n  }\n}`;
+    } else if (lang === 'python') {
+      return `class ${question.match(/\\w+/)?.[0] || 'MyClass'}:\n    def __init__(self):\n        pass\n    \n    def method(self):\n        pass`;
+    }
+  }
+
+  return templates[lang] || templates['javascript'];
+}
+
+// COPY CODE
+function copyCode(event) {
+  const btn = event.target;
+  const codeDiv = btn.closest('.code-header').nextElementSibling;
+  const code = atob(codeDiv.dataset.code);
+  
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+  });
+}
+
+// ESCAPE HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// APPEND MESSAGE
+function appendMessage(role, content) {
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  
+  const wrapper = document.createElement('div');
+  wrapper.className = 'message-wrapper';
+
+  const avatar = document.createElement('div');
+  avatar.className = `message-avatar`;
+  avatar.textContent = role === 'assistant' ? '🐱' : '👤';
+
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content';
+  contentDiv.innerHTML = content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(contentDiv);
+  div.appendChild(wrapper);
+
+  if (chatContainer.innerHTML.includes('welcome')) {
+    chatContainer.innerHTML = '';
+  }
+
+  chatContainer.appendChild(div);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// RENDER SIDEBAR
+function renderSidebar() {
+  const historyDiv = document.getElementById('chatHistory');
+  historyDiv.innerHTML = conversations.map(c => `
+    <div class="chat-item ${c.id === currentConvId ? 'active' : ''}" onclick="selectConversation('${c.id}')">
+      <div class="chat-item-text">💬 ${c.title}</div>
+      <div class="chat-item-delete" onclick="deleteChat(event, '${c.id}')">🗑️</div>
+    </div>
+  `).join('');
+}
+
+// DELETE CHAT
+function deleteChat(event, convId) {
+  event.stopPropagation();
+  deleteTargetId = convId;
+  deleteModal.classList.add('active');
+}
+
+function confirmDelete() {
+  conversations = conversations.filter(c => c.id !== deleteTargetId);
+  localStorage.setItem('xona_conversations', JSON.stringify(conversations));
+  
+  if (currentConvId === deleteTargetId) {
+    startNewChat();
+  } else {
+    renderSidebar();
+  }
+  
+  deleteModal.classList.remove('active');
+}
+
+function cancelDelete() {
+  deleteModal.classList.remove('active');
+}
+
+// CLEAR ALL
+function clearAllChats() {
+  if (confirm('⚠️ Delete ALL chats?')) {
+    conversations = [];
+    localStorage.setItem('xona_conversations', JSON.stringify(conversations));
+    startNewChat();
+  }
+}
+
+// SELECT CONVERSATION
+function selectConversation(convId) {
+  currentConvId = convId;
+  const conv = conversations.find(c => c.id === convId);
+
+  chatContainer.innerHTML = '';
+  if (conv?.messages.length > 0) {
+    conv.messages.forEach(msg => {
+      appendMessage(msg.role, msg.content);
+    });
+  } else {
+    chatContainer.innerHTML = `
+      <div class="welcome">
+        <div class="welcome-icon">💬</div>
+        <h2>${conv?.title}</h2>
+        <p>Start typing...</p>
+      </div>
+    `;
+  }
+
+  renderSidebar();
+  input.focus();
+}
+
+// INIT
+if (conversations.length === 0) startNewChat();
+renderSidebar();
+input.focus();
+</script>
+
+</body>
+</html>
